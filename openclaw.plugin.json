@@ -1,0 +1,76 @@
+{
+  "id": "openclaw-exporter-to-langfuse",
+  "name": "OpenClaw Exporter to Langfuse",
+  "version": "0.1.8",
+  "description": "Export OpenClaw AI agent execution traces to Langfuse via OpenTelemetry",
+  "type": "plugin",
+  "entry": "./dist/index.js",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "endpoint": {
+        "type": "string",
+        "default": "",
+        "description": "Langfuse OTLP endpoint URL (e.g. https://cloud.langfuse.com/api/public/otel/v1/traces)"
+      },
+      "headers": {
+        "type": "object",
+        "default": {},
+        "description": "HTTP headers for OTLP authentication (Langfuse: Authorization)",
+        "properties": {
+          "Authorization": {
+            "type": "string"
+          }
+        }
+      },
+      "serviceName": {
+        "type": "string",
+        "default": "openclaw-agent",
+        "description": "Service name for traces"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": [],
+        "description": "Custom Langfuse tags applied to the trace root span (e.g. [\"id:openclaw\", \"ip:127.0.0.1\"])."
+      },
+      "debug": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable debug logging"
+      },
+      "batchSize": {
+        "type": "number",
+        "default": 10,
+        "description": "Number of spans to buffer before sending"
+      },
+      "flushIntervalMs": {
+        "type": "number",
+        "default": 5000,
+        "description": "Maximum time (ms) to wait before sending buffered spans"
+      },
+      "enabledHooks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of hooks to enable (if not set, all hooks are enabled)"
+      },
+      "skillsRoots": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": [],
+        "description": "Explicit skill roots for skill tag detection. Highest priority; when set, auto-detection is skipped."
+      },
+      "skillTaggingEnabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable skill tag detection and emit skill:* tags to Langfuse tool observations."
+      }
+    }
+  }
+}

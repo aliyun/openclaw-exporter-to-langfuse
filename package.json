@@ -1,0 +1,41 @@
+{
+  "name": "openclaw-exporter-to-langfuse",
+  "version": "0.1.8",
+  "description": "OpenClaw exporter for reporting AI agent execution traces to Langfuse via OpenTelemetry",
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "openclaw.plugin.json"
+  ],
+  "bin": {
+    "openclaw-exporter-to-langfuse-onboard-cli": "./dist/onboard-cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "version-sync": "node -e \"const f=require('fs');const v=f.readFileSync('./VERSION','utf8').trim();const w=(p,d)=>{d.version=v;f.writeFileSync(p,JSON.stringify(d,null,2)+'\\n')};const pkg=JSON.parse(f.readFileSync('./package.json','utf8'));w('./package.json',pkg);const q=JSON.parse(f.readFileSync('./openclaw.plugin.json','utf8'));w('./openclaw.plugin.json',q);const lk=JSON.parse(f.readFileSync('./package-lock.json','utf8'));lk.version=v;if(lk.packages&&lk.packages[''])lk.packages[''].version=v;f.writeFileSync('./package-lock.json',JSON.stringify(lk,null,2)+'\\n');console.log('Synced version:',v);\"",
+    "prepublishOnly": "npm run version-sync && npm run build"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.212.0",
+    "@opentelemetry/resources": "^2.5.1",
+    "@opentelemetry/sdk-trace-base": "^2.5.1",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "commander": "^14.0.3",
+    "inquirer": "^8.2.7"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
