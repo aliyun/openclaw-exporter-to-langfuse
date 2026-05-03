@@ -5,6 +5,9 @@
   "description": "Export OpenClaw AI agent execution traces to Langfuse via OpenTelemetry",
   "type": "plugin",
   "entry": "./dist/index.js",
+  "hooks": {
+    "allowConversationAccess": true
+  },
   "configSchema": {
     "type": "object",
     "properties": {

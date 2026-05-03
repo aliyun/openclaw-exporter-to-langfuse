@@ -970,6 +970,7 @@ if (enablePlugin) {
   }
   config.plugins.entries[pluginName] = {
     enabled: true,
+    hooks: { allowConversationAccess: true },
     config: nextPluginConfig
   };
 }
