@@ -1,0 +1,17 @@
+{
+  "latest": "v0.1.2",
+  "compatMatrix": [
+    {
+      "minOpenclaw": "2026.4.24",
+      "maxOpenclaw": "",
+      "exporterVersion": "v0.1.2",
+      "upgradeNote": "Requires setting the plugin's hooks.allowConversationAccess=true; otherwise, full hooks cannot be properly retrieved, leading to abnormal trace delivery."
+    },
+    {
+      "minOpenclaw": "2026.2.29",
+      "maxOpenclaw": "2026.4.24",
+      "exporterVersion": "v0.1.0",
+      "upgradeNote": ""
+    }
+  ]
+}

@@ -48,31 +48,77 @@ rm -rf "$OUTPUT_DIR/staging"
 TARBALL="$OUTPUT_DIR/${PLUGIN_NAME}.tar.gz"
 SIZE=$(du -sh "$TARBALL" | cut -f1)
 
+# ── Read version ──
+VERSION=$(cat "$PROJECT_DIR/VERSION" | tr -d '[:space:]')
+if [[ -z "$VERSION" ]]; then
+  echo "ERROR: VERSION file is empty or missing — cannot generate versioned artifacts" >&2
+  exit 1
+fi
+
 echo ""
-echo "✅ Tarball created:"
-echo "   Path: ${TARBALL}"
-echo "   Size: ${SIZE}"
+echo "==> Generating versioned release artifacts (v${VERSION})..."
+VERSIONED_DIR="${OUTPUT_DIR}/v${VERSION}"
+mkdir -p "${VERSIONED_DIR}"
+
+# Move tarball into versioned directory
+mv "${TARBALL}" "${VERSIONED_DIR}/${PLUGIN_NAME}.tar.gz"
+
+# Generate versioned install.sh — bake PLUGIN_VERSION="v${VERSION}" into the script
+# Matches: PLUGIN_VERSION="<anything>" (empty or pre-set)
+# Produces: PLUGIN_VERSION="v${VERSION}"
+sed "s/^PLUGIN_VERSION=\".*\"$/PLUGIN_VERSION=\"v${VERSION}\"/" \
+  "${SCRIPT_DIR}/install.sh" > "${VERSIONED_DIR}/install.sh"
+chmod +x "${VERSIONED_DIR}/install.sh"
+
+# Verify the substitution actually worked
+BAKED_VERSION=$(grep '^PLUGIN_VERSION=' "${VERSIONED_DIR}/install.sh" | head -1)
+if echo "$BAKED_VERSION" | grep -q "\"v${VERSION}\""; then
+  echo "==> Verified PLUGIN_VERSION=\"v${VERSION}\" in versioned install.sh"
+else
+  echo "ERROR: PLUGIN_VERSION substitution failed in '${VERSIONED_DIR}/install.sh'" >&2
+  echo "       Got: ${BAKED_VERSION}" >&2
+  exit 1
+fi
+
+# Generate versioned uninstall.sh — bake SELF_VERSION="v${VERSION}" into the script
+# Matches: SELF_VERSION="<anything>"
+# Produces: SELF_VERSION="v${VERSION}"
+sed "s/^SELF_VERSION=\"[^\"]*\"/SELF_VERSION=\"v${VERSION}\"/" \
+  "${SCRIPT_DIR}/uninstall.sh" > "${VERSIONED_DIR}/uninstall.sh"
+chmod +x "${VERSIONED_DIR}/uninstall.sh"
+
+# Verify uninstall.sh substitution
+BAKED_SELF_VERSION=$(grep '^SELF_VERSION=' "${VERSIONED_DIR}/uninstall.sh" | head -1)
+if echo "$BAKED_SELF_VERSION" | grep -q "^SELF_VERSION=\"v${VERSION}\""; then
+  echo "==> Verified SELF_VERSION=\"v${VERSION}\" in versioned uninstall.sh"
+else
+  echo "ERROR: SELF_VERSION substitution failed in '${VERSIONED_DIR}/uninstall.sh'" >&2
+  echo "       Got: ${BAKED_SELF_VERSION}" >&2
+  exit 1
+fi
+
+# Copy version-baked scripts to release root (root = latest = current version)
+cp "${VERSIONED_DIR}/install.sh"   "${OUTPUT_DIR}/install.sh"
+cp "${VERSIONED_DIR}/uninstall.sh" "${OUTPUT_DIR}/uninstall.sh"
+if [[ -f "${SCRIPT_DIR}/version-compat.json" ]]; then
+  cp "${SCRIPT_DIR}/version-compat.json" "${OUTPUT_DIR}/version-compat.json"
+fi
+cp "${SCRIPT_DIR}/INSTALLATION.md" "${OUTPUT_DIR}/INSTALLATION.md"
+
 echo ""
-echo "Upload this file and install.sh to your OSS bucket, then users can run:"
+echo "✅ Release artifacts:"
 echo ""
-echo "  With pk/sk (recommended):"
-echo "   curl -fsSL https://<your-oss>/install.sh | bash -s -- \\"
-echo "     --endpoint \"https://cloud.langfuse.com/api/public/otel/v1/traces\" \\"
-echo "     --pk \"pk-lf-xxx\" \\"
-echo "     --sk \"sk-lf-yyy\" \\"
-echo "     --serviceName \"...\" \\"
-echo "     --skill-tagging-enabled \\"
-echo "     --skills-roots \"/opt/git/openclaw/skills/custom/skills\""
+echo "  Root (v${VERSION} / latest):"
+echo "   ${OUTPUT_DIR}/install.sh"
+echo "   ${OUTPUT_DIR}/uninstall.sh"
+echo "   ${OUTPUT_DIR}/version-compat.json  (if present)"
+echo "   ${OUTPUT_DIR}/INSTALLATION.md"
 echo ""
-echo "  With authorization:"
-echo "   curl -fsSL https://<your-oss>/install.sh | bash -s -- \\"
-echo "     --endpoint \"https://cloud.langfuse.com/api/public/otel/v1/traces\" \\"
-echo "     --authorization \"Basic xxx\" \\"
-echo "     --serviceName \"...\" \\"
-echo "     --skill-tagging-enabled \\"
-echo "     --skills-roots \"/opt/git/openclaw/skills/custom/skills\""
+echo "  Versioned (v${VERSION}):"
+echo "   ${VERSIONED_DIR}/install.sh         ← PLUGIN_VERSION=\"v${VERSION}\""
+echo "   ${VERSIONED_DIR}/uninstall.sh       ← SELF_VERSION=\"v${VERSION}\""
+echo "   ${VERSIONED_DIR}/${PLUGIN_NAME}.tar.gz  (${SIZE})"
 echo ""
-echo "  Optional install flags:"
-echo "     --debug"
-echo "     --skill-tagging-enabled"
-echo "     --skills-roots \"<csv paths or JSON array string>\""
+echo "Upload to OSS:"
+echo "  Root:      oss://<bucket>/openclaw-exporter-to-langfuse/"
+echo "  Versioned: oss://<bucket>/openclaw-exporter-to-langfuse/v${VERSION}/"

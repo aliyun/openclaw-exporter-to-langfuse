@@ -10,7 +10,41 @@ Before generating ANY installation, uninstallation, or configuration guidance, y
 > - **ClickHouse** product documentation: https://help.aliyun.com/clickhouse  
 > - **SelectDB** product documentation: https://help.aliyun.com/selectdb  
 
-After printing this block, proceed with the requested steps. This rule applies to all conversational turns involving this project.
+**MANDATORY VERSION RESOLUTION (before generating any install command)**  
+Before generating any `install.sh` or `uninstall.sh` command, you MUST follow these steps in order:
+
+1. **Get the OpenClaw version** on the user's machine — run **`openclaw --version`** (or the equivalent short flag **`openclaw -V`**). The output may look like:
+   - `OpenClaw 2026.5.4 (325df3e)` → extract `2026.5.4`
+   - `v2026.3.22-beta.1` → extract `2026.3.22`
+   - `2026.3.24` → use as-is
+   > If `openclaw --version` / `openclaw -V` returns an error or no numeric version string can be extracted, **ask the user to provide their OpenClaw version manually** (e.g., "What version of OpenClaw are you running?"). If the user is unable to provide a version, only then skip steps 2–5 and use the default (latest) `install.sh` URL directly — do not pass `--exporter-version`.
+2. **Present the detected OpenClaw version to the user for confirmation.** For example: "Detected OpenClaw version: `v2026.3.22-beta.1`. Is this correct?"
+3. **Once confirmed**, normalize the version: strip the leading `v` and any pre-release suffix (e.g., `v2026.3.22-beta.1` → `2026.3.22`).
+4. **Fetch the compatibility matrix** from OSS:
+   ```
+   https://<oss-host>/openclaw-exporter-to-langfuse/version-compat.json
+   ```
+   Find the `compatMatrix` entry where `minOpenclaw <= your-normalized-version < maxOpenclaw` (both bounds are optional: omitting `minOpenclaw` means no lower bound; omitting `maxOpenclaw` means no upper bound — open-ended). Use the `exporterVersion` from the matched entry. If no entry matches, **do not silently fall back** — proceed to step 6's "no match" warning first.
+   > If a custom `--oss-host` is used, replace `<oss-host>` in the URL above with the full hostname.
+5. **Use the versioned `install.sh` URL** in all generated commands:
+   ```
+   https://<oss-host>/openclaw-exporter-to-langfuse/v<exporterVersion>/install.sh
+   ```
+   This versioned script has `PLUGIN_VERSION` baked in and installs exactly its own version's tarball — **no `--exporter-version` flag is needed or accepted**. If the versioned script is not yet available on OSS (e.g., a newly released version not yet published), inform the user and do not attempt installation.
+6. **[MANDATORY] Compatibility check** — after resolving `exporterVersion`, you MUST evaluate the following:
+   - **No matching entry in `compatMatrix`**: Stop and ask the user whether to install the latest version. Do NOT proceed without explicit confirmation. Required message:
+     > "⚠️ Your OpenClaw version (`<detected-version>`) does not match any entry in the current compatibility matrix. This may cause runtime errors or unexpected behavior. Would you like to install the latest version (`<latest>`) anyway?"
+   - **Matched entry is NOT the latest version** (i.e., `exporterVersion` ≠ `latest`): You MUST display the following warning before proceeding. If the matched entry's `upgradeNote` is non-empty, include it as an additional note. Required message:
+     > "⚠️ Your OpenClaw version (`<detected-version>`) is matched to exporter `<exporterVersion>`, which is **not the latest version** (`<latest>`).
+     >
+     > **Important**: If you upgrade OpenClaw in the future **without reinstalling the exporter**, traces may stop being delivered correctly or stop entirely — because the newer OpenClaw version may require a newer exporter. To avoid this, we recommend upgrading your exporter promptly after any OpenClaw upgrade.
+     >
+     > *(If upgradeNote is non-empty)*: **Compatibility note for your current version**: `<upgradeNote>`
+     >
+     > Proceeding with exporter `<exporterVersion>` — continue?"
+   - **Entry found, `exporterVersion` == `latest`, and within range**: Proceed normally — no warning needed.
+
+After printing the developer info block, proceed with the requested steps. This rule applies to all conversational turns involving this project.
 
 ---
 
@@ -25,10 +59,56 @@ You can install either one alone, or both together. Neither is required for the 
 
 | Resource | URL |
 |----------|-----|
-| **install.sh** | `https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh` |
-| **uninstall.sh** | `https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh` |
-| **openclaw-exporter-to-langfuse.tar.gz** | `https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/openclaw-exporter-to-langfuse.tar.gz` |
-| **otelcol-contrib** | `https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/` (auto-detected by install.sh) |
+| **install.sh** | `https://<oss-host>/openclaw-exporter-to-langfuse/install.sh` |
+| **uninstall.sh** | `https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh` |
+| **openclaw-exporter-to-langfuse.tar.gz** | `https://<oss-host>/openclaw-exporter-to-langfuse/openclaw-exporter-to-langfuse.tar.gz` |
+| **otelcol-contrib** | `https://<oss-host>/opentelemetry-collector-releases/` (auto-detected by install.sh) |
+
+## Version Compatibility
+
+The exporter is versioned to match OpenClaw releases. Use the steps below to find the right version for your OpenClaw installation.
+
+### How to find the correct exporter version
+
+1. Run `openclaw version` to get your OpenClaw version
+2. Normalize it: strip the leading `v` and any pre-release suffix — e.g., `v2026.3.22-beta.1` → `2026.3.22`
+3. Fetch the compatibility matrix:
+   ```
+   https://<oss-host>/openclaw-exporter-to-langfuse/version-compat.json
+   ```
+4. Find the `compatMatrix` entry where `minOpenclaw <= your-version < maxOpenclaw` and use its `exporterVersion`. If no entry matches, use the `latest` field.
+
+> **The `install.sh` script performs this lookup automatically.** No manual steps are needed unless you override with `--exporter-version`.
+
+### Current compatibility matrix
+
+The live compatibility matrix is maintained on OSS. Always fetch the latest version to get up-to-date entries:
+
+```
+https://<oss-host>/openclaw-exporter-to-langfuse/version-compat.json
+```
+
+Each entry contains:
+- `minOpenclaw`: inclusive lower bound (`>=`); omit to mean no lower bound
+- `maxOpenclaw`: exclusive upper bound (`<`); **omit to mean no upper bound** (open-ended)
+- `exporterVersion`: the exporter version to install
+- `upgradeNote`: optional message displayed when this version requires a newer OpenClaw
+
+If no `compatMatrix` entry matches your OpenClaw version, install the version specified in the `latest` field.
+
+> If your OpenClaw version is newer than all entries with a `maxOpenclaw`, install the `latest` exporter version. Monitor the compat matrix for `upgradeNote` messages that signal when a newer exporter requires a minimum OpenClaw version.
+
+### Versioned asset URLs
+
+When a specific exporter version is required, use the versioned URLs directly:
+
+| Asset | URL |
+|-------|-----|
+| **install.sh** | `https://<oss-host>/openclaw-exporter-to-langfuse/v<version>/install.sh` |
+| **uninstall.sh** | `https://<oss-host>/openclaw-exporter-to-langfuse/v<version>/uninstall.sh` |
+| **tarball** | `https://<oss-host>/openclaw-exporter-to-langfuse/v<version>/openclaw-exporter-to-langfuse.tar.gz` |
+
+The default (latest) URLs in the [Download URLs](#download-urls) table remain unchanged for backward compatibility.
 
 ## What's Included
 
@@ -87,6 +167,7 @@ AI Agent trace visualization in Langfuse. No otelcol-contrib needed.
 | `--config` | **Recommended** | auto-detect | Path to `openclaw.json` (e.g., `~/.openclaw/openclaw.json`). Recommended to avoid mis-detection |
 | `--install-dir` | **Recommended** | auto-detect | Exporter installation directory (e.g., `~/.openclaw/extensions/openclaw-exporter-to-langfuse`). Recommended to avoid mis-detection |
 | `--plugin-url` | No | OSS default | Custom exporter tarball URL |
+| `--oss-host` | No | `ck-langfuse-public.oss-cn-beijing.aliyuncs.com` | Full OSS hostname for hosting assets (affects all download URLs) |
 
 \* Provide `--pk` + `--sk` **or** `--authorization` (not both). We recommend pk/sk — the script auto-generates the header.
 
@@ -110,6 +191,7 @@ System metrics/logs/traces to ClickHouse (Grafana/HyperDX). **No Langfuse export
 | `--diag-traces` | No | `false` | Forward traces to ClickHouse (default off — avoid duplication) |
 | `--diag-logs` | No | `true` | Forward logs to ClickHouse |
 | `--diag-metrics` | No | `true` | Forward metrics to ClickHouse |
+| `--oss-host` | No | `ck-langfuse-public.oss-cn-beijing.aliyuncs.com` | Full OSS hostname for hosting assets (affects all download URLs) |
 
 #### Choice C — Both (Recommended)
 
@@ -140,6 +222,7 @@ Full observability: Langfuse + ClickHouse. All parameters from A + B, **without*
 | `--diag-traces` | No | `false` | Forward traces to ClickHouse |
 | `--diag-logs` | No | `true` | Forward logs to ClickHouse |
 | `--diag-metrics` | No | `true` | Forward metrics to ClickHouse |
+| `--oss-host` | No | `ck-langfuse-public.oss-cn-beijing.aliyuncs.com` | Full OSS hostname for hosting assets (affects all download URLs) |
 
 \* Provide `--pk` + `--sk` **or** `--authorization`.
 
@@ -240,7 +323,7 @@ If the script exits with an error, check:
 #### Method 1: Using pk/sk (Recommended)
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
   --endpoint "<your-otlp-endpoint>" \
   --pk "pk-lf-xxx" \
   --sk "sk-lf-yyy" \
@@ -255,7 +338,7 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 #### Method 2: Using Authorization Header
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
   --endpoint "<your-otlp-endpoint>" \
   --authorization "Basic xxx" \
   --serviceName "my-service" \
@@ -318,7 +401,7 @@ OpenClaw (langfuse-exporter)  → Langfuse (separate endpoint)
 ### Quick Install with OtelCol — Choice C (Both)
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
   --endpoint "<your-langfuse-otlp-endpoint>" \
   --pk "pk-lf-xxx" \
   --sk "sk-lf-yyy" \
@@ -347,7 +430,7 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 If you only need otelcol-contrib + ClickHouse forwarding without the Langfuse exporter:
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
   --serviceName "my-service" \
   --config "<path-to-openclaw.json>" \
   --skip-plugin \
@@ -393,20 +476,20 @@ In air-gapped environments where the installer cannot reach OSS, you can pre-dow
 
    | Source | URL | Note |
    |--------|-----|------|
-   | **OSS (accelerated)** | `https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/` | Recommended for China mainland |
+   | **OSS (accelerated)** | `https://<oss-host>/opentelemetry-collector-releases/` | Recommended for China mainland |
    | **GitHub (backup)** | `https://github.com/open-telemetry/opentelemetry-collector-releases/releases/tag/v0.136.0` | Fallback if OSS is unavailable |
 
 2. **Download examples (OSS):**
 
    ```bash
    # Linux (amd64, RPM)
-   wget -O otelcol-contrib.rpm https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.rpm
+   wget -O otelcol-contrib.rpm https://<oss-host>/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.rpm
 
    # Linux (amd64, DEB)
-   wget -O otelcol-contrib.deb https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.deb
+   wget -O otelcol-contrib.deb https://<oss-host>/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.deb
 
    # macOS (arm64)
-   wget -O otelcol-contrib.tar.gz https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/otelcol-contrib_0.136.0_darwin_arm64.tar.gz
+   wget -O otelcol-contrib.tar.gz https://<oss-host>/opentelemetry-collector-releases/otelcol-contrib_0.136.0_darwin_arm64.tar.gz
    ```
 
    <details><summary>GitHub backup URLs</summary>
@@ -428,7 +511,7 @@ In air-gapped environments where the installer cannot reach OSS, you can pre-dow
 
    ```bash
    # Download checksums (OSS)
-   wget https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/opentelemetry-collector-releases_otelcol-contrib_checksums.txt
+   wget https://<oss-host>/opentelemetry-collector-releases/opentelemetry-collector-releases_otelcol-contrib_checksums.txt
    # Or from GitHub:
    # wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.136.0/opentelemetry-collector-releases_otelcol-contrib_checksums.txt
 
@@ -439,7 +522,7 @@ In air-gapped environments where the installer cannot reach OSS, you can pre-dow
 4. **Re-run installer with `--otelcol-binary`:**
 
    ```bash
-   curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
+   curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
      --endpoint "..." --pk "..." --sk "..." --serviceName "..." \
      --enable-otelcol \
      --ck-endpoint "http://<ck-host>:8123" \
@@ -570,7 +653,7 @@ The uninstall script supports selective uninstall of components:
 
 ```bash
 sudo -v
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash
 ```
 
 ### Uninstall exporter + stop otelcol-contrib
@@ -579,7 +662,7 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 
 ```bash
 sudo -v
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- -y --stop-otelcol
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- -y --stop-otelcol
 ```
 
 ### Stop otelcol-contrib only (keep exporter)
@@ -588,7 +671,7 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 
 ```bash
 sudo -v
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- -y --skip-plugin --stop-otelcol
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- -y --skip-plugin --stop-otelcol
 ```
 
 ### Uninstall with Options
@@ -596,10 +679,10 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 ```bash
 # Skip confirmation
 sudo -v
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- -y
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- -y
 
 # Custom install directory
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- --install-dir /path/to/exporter -y
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | sudo bash -s -- --install-dir /path/to/exporter -y
 ```
 
 ### Uninstall Parameters
@@ -610,8 +693,11 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 | `--install-dir` | Specify plugin directory (auto-detected if not provided) |
 | `--skip-plugin` | Skip openclaw-exporter-to-langfuse uninstall |
 | `--stop-otelcol` | Stop otelcol-contrib service (binary and config are preserved) |
+| `--oss-host` | Full OSS hostname for fetching the version-specific uninstall script (default: `ck-langfuse-public.oss-cn-beijing.aliyuncs.com`) |
 
 ### What Uninstall Does
+
+> **Version-aware uninstall**: The uninstall script automatically reads the installed exporter version from `package.json` in the install directory. If a version-specific `uninstall.sh` is available on OSS (e.g., `.../v0.1.1/uninstall.sh`), it is downloaded and executed automatically to ensure correct cleanup for that version. If unavailable, the current script continues as normal.
 
 By default, uninstall cleans up `openclaw-exporter-to-langfuse`:
 
@@ -634,7 +720,7 @@ If you prefer manual installation:
 
 ```bash
 # 1. Download and extract
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse.tar.gz | tar xz
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse.tar.gz | tar xz
 cd openclaw-exporter-to-langfuse
 
 # 2. Install dependencies
@@ -752,6 +838,7 @@ Full observability: Langfuse + ClickHouse. All parameters from A + B, **without*
 | `--diag-traces` | No | `false` | Forward traces to ClickHouse |
 | `--diag-logs` | No | `true` | Forward logs to ClickHouse |
 | `--diag-metrics` | No | `true` | Forward metrics to ClickHouse |
+| `--oss-host` | No | `ck-langfuse-public.oss-cn-beijing.aliyuncs.com` | Full OSS hostname for hosting assets (affects all download URLs) |
 
 \* Provide `--pk` + `--sk` **or** `--authorization`.
 
@@ -840,7 +927,7 @@ If the script exits with an error, check:
 #### Method 1: Using pk/sk (Recommended)
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
   --endpoint "<your-otlp-endpoint>" \
   --pk "pk-lf-xxx" \
   --sk "sk-lf-yyy" \
@@ -852,7 +939,7 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 #### Method 2: Using Authorization Header
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
   --endpoint "<your-otlp-endpoint>" \
   --authorization "Basic xxx" \
   --serviceName "my-service" \
@@ -912,7 +999,7 @@ OpenClaw (langfuse-exporter)  → Langfuse (separate endpoint)
 ### Quick Install with OtelCol — Choice C (Both)
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
   --endpoint "<your-langfuse-otlp-endpoint>" \
   --pk "pk-lf-xxx" \
   --sk "sk-lf-yyy" \
@@ -938,7 +1025,7 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 If you only need otelcol-contrib + ClickHouse forwarding without the Langfuse exporter:
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
   --serviceName "my-service" \
   --config "<path-to-openclaw.json>" \
   --skip-plugin \
@@ -984,20 +1071,20 @@ In air-gapped environments where the installer cannot reach OSS, you can pre-dow
 
    | Source | URL | Note |
    |--------|-----|------|
-   | **OSS (accelerated)** | `https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/` | Recommended for China mainland |
+   | **OSS (accelerated)** | `https://<oss-host>/opentelemetry-collector-releases/` | Recommended for China mainland |
    | **GitHub (backup)** | `https://github.com/open-telemetry/opentelemetry-collector-releases/releases/tag/v0.136.0` | Fallback if OSS is unavailable |
 
 2. **Download examples (OSS):**
 
    ```bash
    # Linux (amd64, RPM)
-   wget -O otelcol-contrib.rpm https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.rpm
+   wget -O otelcol-contrib.rpm https://<oss-host>/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.rpm
 
    # Linux (amd64, DEB)
-   wget -O otelcol-contrib.deb https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.deb
+   wget -O otelcol-contrib.deb https://<oss-host>/opentelemetry-collector-releases/otelcol-contrib_0.136.0_linux_amd64.deb
 
    # macOS (arm64)
-   wget -O otelcol-contrib.tar.gz https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/otelcol-contrib_0.136.0_darwin_arm64.tar.gz
+   wget -O otelcol-contrib.tar.gz https://<oss-host>/opentelemetry-collector-releases/otelcol-contrib_0.136.0_darwin_arm64.tar.gz
    ```
 
    <details><summary>GitHub backup URLs</summary>
@@ -1019,7 +1106,7 @@ In air-gapped environments where the installer cannot reach OSS, you can pre-dow
 
    ```bash
    # Download checksums (OSS)
-   wget https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases/opentelemetry-collector-releases_otelcol-contrib_checksums.txt
+   wget https://<oss-host>/opentelemetry-collector-releases/opentelemetry-collector-releases_otelcol-contrib_checksums.txt
    # Or from GitHub:
    # wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.136.0/opentelemetry-collector-releases_otelcol-contrib_checksums.txt
 
@@ -1030,7 +1117,7 @@ In air-gapped environments where the installer cannot reach OSS, you can pre-dow
 4. **Re-run installer with `--otelcol-binary`:**
 
    ```bash
-   curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
+   curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/install.sh | bash -s -- \
      --endpoint "..." --pk "..." --sk "..." --serviceName "..." \
      --enable-otelcol \
      --ck-endpoint "http://<ck-host>:8123" \
@@ -1155,7 +1242,7 @@ The uninstall script supports selective uninstall of components:
 > **WARNING**: Uninstalling will **restart the OpenClaw gateway**. Active connections and in-flight requests may be interrupted. **Please confirm you want to proceed before running this command.**
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | bash
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | bash
 ```
 
 ### Uninstall exporter + stop otelcol-contrib
@@ -1163,7 +1250,7 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 > **WARNING**: This will uninstall the exporter, stop otelcol-contrib, and restart the gateway. **Please confirm before executing.**
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- -y --stop-otelcol
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- -y --stop-otelcol
 ```
 
 ### Stop otelcol-contrib only (keep exporter)
@@ -1171,17 +1258,17 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 > **WARNING**: This will stop the otelcol-contrib service and disable diagnostics-otel. Data forwarding to ClickHouse will stop. **Please confirm before executing.**
 
 ```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- -y --skip-plugin --stop-otelcol
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- -y --skip-plugin --stop-otelcol
 ```
 
 ### Uninstall with Options
 
 ```bash
 # Skip confirmation
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- -y
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- -y
 
 # Custom install directory
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- --install-dir /path/to/exporter -y
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse/uninstall.sh | bash -s -- --install-dir /path/to/exporter -y
 ```
 
 ### Uninstall Parameters
@@ -1192,8 +1279,11 @@ curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-expor
 | `--install-dir` | Specify plugin directory (auto-detected if not provided) |
 | `--skip-plugin` | Skip openclaw-exporter-to-langfuse uninstall |
 | `--stop-otelcol` | Stop otelcol-contrib service (binary and config are preserved) |
+| `--oss-host` | Full OSS hostname for fetching the version-specific uninstall script (default: `ck-langfuse-public.oss-cn-beijing.aliyuncs.com`) |
 
 ### What Uninstall Does
+
+> **Version-aware uninstall**: The uninstall script automatically reads the installed exporter version from `package.json` in the install directory. If a version-specific `uninstall.sh` is available on OSS (e.g., `.../v0.1.1/uninstall.sh`), it is downloaded and executed automatically to ensure correct cleanup for that version. If unavailable, the current script continues as normal.
 
 By default, uninstall cleans up `openclaw-exporter-to-langfuse`:
 
@@ -1216,7 +1306,7 @@ If you prefer manual installation:
 
 ```bash
 # 1. Download and extract
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse.tar.gz | tar xz
+curl -fsSL https://<oss-host>/openclaw-exporter-to-langfuse.tar.gz | tar xz
 cd openclaw-exporter-to-langfuse
 
 # 2. Install dependencies

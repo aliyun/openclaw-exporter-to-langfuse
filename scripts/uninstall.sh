@@ -17,10 +17,14 @@ set -euo pipefail
 
 PLUGIN_NAME="openclaw-exporter-to-langfuse"
 DIAG_PLUGIN_NAME="diagnostics-otel"
+OSS_HOST="ck-langfuse-public.oss-cn-beijing.aliyuncs.com"   # customisable via --oss-host
+OSS_BASE_URL="https://${OSS_HOST}/openclaw-exporter-to-langfuse"
+SELF_VERSION=""   # set to specific version in versioned copies (e.g. "v0.1.1")
 SKIP_CONFIRM=false
 INSTALL_DIR=""
 ENABLE_PLUGIN_UNINSTALL=true
 STOP_OTELCOL=false
+SKIP_REDIRECT=false
 
 # ── Color helpers ──
 RED='\033[0;31m'
@@ -87,6 +91,13 @@ while [[ $# -gt 0 ]]; do
       INSTALL_DIR="$2"; shift 2 ;;
     --skip-plugin)     ENABLE_PLUGIN_UNINSTALL=false; shift ;;
     --stop-otelcol)    STOP_OTELCOL=true; shift ;;
+    --skip-redirect)   SKIP_REDIRECT=true; shift ;;
+    --oss-host)
+      if [[ $# -lt 2 ]] || [[ "$2" == --* ]]; then
+        error "Option --oss-host requires a value"
+        exit 1
+      fi
+      OSS_HOST="$2"; shift 2 ;;
     *)
       error "Unknown option: $1"
       echo ""
@@ -102,6 +113,9 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# ── Recompute OSS-derived URL in case --oss-host was provided ──
+OSS_BASE_URL="https://${OSS_HOST}/openclaw-exporter-to-langfuse"
 
 print_developer_info
 
@@ -124,6 +138,40 @@ elif [[ -d "/opt/${PLUGIN_NAME}" ]]; then
   TARGET_DIR="/opt/${PLUGIN_NAME}"
 else
   TARGET_DIR=""
+fi
+
+# ── Version-redirect: delegate to versioned uninstall.sh when available ──
+if [[ "$SKIP_REDIRECT" == false ]] && [[ -z "$SELF_VERSION" ]]; then
+  INSTALLED_VERSION=""
+  if [[ -n "$TARGET_DIR" ]] && [[ -f "$TARGET_DIR/package.json" ]] && command -v node &>/dev/null; then
+    # Read full version from package.json, normalize to 'v' prefix
+    # Handles: "0.1.1" -> "v0.1.1", "0.1.1-beta.1" -> "v0.1.1-beta.1", "v0.1.1" -> "v0.1.1"
+    INSTALLED_VERSION=$(node -e "
+      try {
+        const p = JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
+        const v = (p.version || '').trim();
+        process.stdout.write(v ? 'v' + v.replace(/^v/i, '') : '');
+      } catch(e) {}
+    " "$TARGET_DIR/package.json" 2>/dev/null || true)
+  fi
+  if [[ -n "$INSTALLED_VERSION" ]]; then
+    VERSIONED_UNINSTALL_URL="${OSS_BASE_URL}/${INSTALLED_VERSION}/uninstall.sh"
+    VERSIONED_TMP=$(mktemp)
+    DOWNLOAD_OK=false
+    if command -v curl &>/dev/null && curl -fsSL "$VERSIONED_UNINSTALL_URL" -o "$VERSIONED_TMP" 2>/dev/null; then
+      DOWNLOAD_OK=true
+    elif command -v wget &>/dev/null && wget -q "$VERSIONED_UNINSTALL_URL" -O "$VERSIONED_TMP" 2>/dev/null; then
+      DOWNLOAD_OK=true
+    fi
+    if [[ "$DOWNLOAD_OK" == true ]]; then
+      chmod +x "$VERSIONED_TMP"
+      info "Using version-specific uninstall script for exporter ${INSTALLED_VERSION}"
+      exec "$VERSIONED_TMP" --skip-redirect "$@"
+    else
+      warn "Could not download versioned uninstall script for ${INSTALLED_VERSION}; using current script"
+      rm -f "$VERSIONED_TMP"
+    fi
+  fi
 fi
 
 # ── Determine openclaw.json path ──

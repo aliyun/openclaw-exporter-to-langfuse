@@ -41,12 +41,21 @@
 set -euo pipefail
 
 PLUGIN_NAME="openclaw-exporter-to-langfuse"
-# ── Replace with your actual OSS URL after uploading ──
-DEFAULT_PLUGIN_URL="https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/openclaw-exporter-to-langfuse.tar.gz"
+# ── Plugin version — baked in by pack.sh for versioned releases (e.g., "v0.1.2"); empty = latest (floating) ──
+PLUGIN_VERSION=""
+# ── OSS host — full hostname, customisable via --oss-host (e.g. my-bucket.oss-cn-beijing.aliyuncs.com) ──
+OSS_HOST="ck-langfuse-public.oss-cn-beijing.aliyuncs.com"
+# ── OSS base URL (versioned assets live under <OSS_BASE_URL>/v<version>/) ──
+OSS_BASE_URL="https://${OSS_HOST}/openclaw-exporter-to-langfuse"
+if [[ -n "$PLUGIN_VERSION" ]]; then
+  DEFAULT_PLUGIN_URL="${OSS_BASE_URL}/${PLUGIN_VERSION}/openclaw-exporter-to-langfuse.tar.gz"
+else
+  DEFAULT_PLUGIN_URL="${OSS_BASE_URL}/openclaw-exporter-to-langfuse.tar.gz"
+fi
 
 DIAG_PLUGIN_NAME="diagnostics-otel"
 OTELCOL_VERSION="0.136.0"
-OTELCOL_OSS_BASE="https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/opentelemetry-collector-releases"
+OTELCOL_OSS_BASE="https://${OSS_HOST}/opentelemetry-collector-releases"
 OTELCOL_CHECKSUMS_URL="${OTELCOL_OSS_BASE}/opentelemetry-collector-releases_otelcol-contrib_checksums.txt"
 
 # ── Defaults ──
@@ -64,6 +73,7 @@ ENABLE_SKILL_TAGGING=false
 SKILLS_ROOTS=""
 CUSTOM_TAGS=""
 ENABLE_DEBUG=false
+INSTALLED_VERSION=""  # read from package.json after installation; used for verification and summary
 
 # ── OtelCol-Contrib + ClickHouse defaults ──
 ENABLE_OTELCOL=false
@@ -166,12 +176,26 @@ while [[ $# -gt 0 ]]; do
     --diag-traces)        need_value "$@"; DIAG_TRACES="$2";    shift 2 ;;
     --diag-logs)          need_value "$@"; DIAG_LOGS="$2";      shift 2 ;;
     --diag-metrics)       need_value "$@"; DIAG_METRICS="$2";   shift 2 ;;
+    --oss-host)           need_value "$@"; OSS_HOST="$2";         shift 2 ;;
     *)
       error "Unknown option: $1"
       exit 1
       ;;
   esac
 done
+
+# ── Recompute OSS-derived URLs in case --oss-host was provided ──
+OSS_BASE_URL="https://${OSS_HOST}/openclaw-exporter-to-langfuse"
+OTELCOL_OSS_BASE="https://${OSS_HOST}/opentelemetry-collector-releases"
+OTELCOL_CHECKSUMS_URL="${OTELCOL_OSS_BASE}/opentelemetry-collector-releases_otelcol-contrib_checksums.txt"
+if [[ "$PLUGIN_URL" == "$DEFAULT_PLUGIN_URL" ]]; then
+  if [[ -n "$PLUGIN_VERSION" ]]; then
+    DEFAULT_PLUGIN_URL="${OSS_BASE_URL}/${PLUGIN_VERSION}/openclaw-exporter-to-langfuse.tar.gz"
+  else
+    DEFAULT_PLUGIN_URL="${OSS_BASE_URL}/openclaw-exporter-to-langfuse.tar.gz"
+  fi
+  PLUGIN_URL="$DEFAULT_PLUGIN_URL"
+fi
 
 print_developer_info
 
@@ -278,6 +302,15 @@ if ! command -v "$OPENCLAW_CMD" &>/dev/null; then
 fi
 ok "OpenClaw CLI found"
 
+# ── Report which tarball will be installed ──
+if [[ "$PLUGIN_URL" != "$DEFAULT_PLUGIN_URL" ]]; then
+  info "Using custom plugin URL: ${PLUGIN_URL}"
+elif [[ -n "$PLUGIN_VERSION" ]]; then
+  info "Installing exporter ${PLUGIN_VERSION}..."
+else
+  info "Installing latest exporter..."
+fi
+
 # ── Check endpoint connectivity ──
 if [[ "$ENABLE_PLUGIN" == true ]]; then
   info "Checking Langfuse endpoint connectivity: ${ENDPOINT}"
@@ -375,6 +408,22 @@ if ! (cd "$TARGET_DIR" && npm install --omit=dev --ignore-scripts 2>&1); then
 fi
 ok "Dependencies installed"
 PLUGIN_STATUS="installed"
+
+# ── Verify installed version ──
+INSTALLED_VERSION=$(node -e "
+try {
+  const p = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));
+  process.stdout.write(p.version || '');
+} catch(e) {}
+" "${TARGET_DIR}/package.json" 2>/dev/null || echo "")
+if [[ -n "$PLUGIN_VERSION" ]] && [[ -n "$INSTALLED_VERSION" ]]; then
+  EXPECTED_VER="${PLUGIN_VERSION#v}"
+  if [[ "$INSTALLED_VERSION" != "$EXPECTED_VER" ]]; then
+    warn "Version mismatch: expected ${PLUGIN_VERSION}, installed v${INSTALLED_VERSION}"
+  else
+    ok "Version verified: ${PLUGIN_VERSION}"
+  fi
+fi
 
 fi  # end ENABLE_PLUGIN
 
@@ -1110,6 +1159,11 @@ echo ""
 echo "  Config file:   ${CONFIG_PATH}"
 echo "  Endpoint:      ${ENDPOINT}"
 echo "  Service name:  ${SERVICE_NAME}"
+if [[ -n "${INSTALLED_VERSION:-}" ]]; then
+  echo "  Exporter ver:  v${INSTALLED_VERSION}"
+elif [[ -n "$PLUGIN_VERSION" ]]; then
+  echo "  Exporter ver:  ${PLUGIN_VERSION}"
+fi
 echo ""
 
 if [[ "$ENABLE_PLUGIN" == true ]]; then

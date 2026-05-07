@@ -1,7 +1,7 @@
 {
   "id": "openclaw-exporter-to-langfuse",
   "name": "OpenClaw Exporter to Langfuse",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Export OpenClaw AI agent execution traces to Langfuse via OpenTelemetry",
   "type": "plugin",
   "entry": "./dist/index.js",
