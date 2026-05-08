@@ -27,18 +27,6 @@ OpenClaw 到 Langfuse 的导出器，提供两种互补的可观测性能力：
 - 手动安装方式
 - 常见问题排查
 
-## 快速开始
-
-```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
-  --endpoint "<your-otlp-endpoint>" \
-  --pk "pk-lf-xxx" \
-  --sk "sk-lf-yyy" \
-  --serviceName "my-service" \
-  --config "<path-to-openclaw.json>" \
-  --install-dir "<path-to-install-directory>"
-```
-
 ## 上报的 Span
 
 导出器按照 [OpenTelemetry GenAI 语义规范](https://opentelemetry.io/docs/specs/semconv/gen-ai/) 上报以下 Span：
@@ -66,21 +54,27 @@ https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-lang
 
 ```
 <oss-host>/openclaw-exporter-to-langfuse/
-├── install.sh                   ← 与 v0.1.2/install.sh 相同（当前最新版本）
-├── uninstall.sh                 ← 与 v0.1.2/uninstall.sh 相同（当前最新版本）
 ├── version-compat.json          ← 兼容矩阵（全量版本）
 ├── INSTALLATION.md              ← Agent 可读的安装指南
+├── latest/                      ← 始终与最新版本（v0.1.2）内容一致
+│   ├── install.sh               ← 已写入 PLUGIN_VERSION="v0.1.2"
+│   ├── uninstall.sh
+│   ├── INSTALLATION.md
+│   └── openclaw-exporter-to-langfuse.tar.gz
 ├── v0.1.0/
 │   ├── install.sh               ← 已写入 PLUGIN_VERSION="v0.1.0"
 │   ├── uninstall.sh
+│   ├── INSTALLATION.md
 │   └── openclaw-exporter-to-langfuse.tar.gz
 ├── v0.1.1/
 │   ├── install.sh               ← 已写入 PLUGIN_VERSION="v0.1.1"
 │   ├── uninstall.sh
+│   ├── INSTALLATION.md
 │   └── openclaw-exporter-to-langfuse.tar.gz
 └── v0.1.2/
     ├── install.sh               ← 已写入 PLUGIN_VERSION="v0.1.2"
     ├── uninstall.sh
+    ├── INSTALLATION.md
     └── openclaw-exporter-to-langfuse.tar.gz
 ```
 
@@ -135,18 +129,19 @@ bash scripts/pack.sh
 # 输出：
 #   release/v0.1.2/install.sh         ← 已写入 PLUGIN_VERSION="v0.1.2"
 #   release/v0.1.2/uninstall.sh       ← 已写入 SELF_VERSION="v0.1.2"
+#   release/v0.1.2/INSTALLATION.md    ← 版本专属安装指南
 #   release/v0.1.2/openclaw-exporter-to-langfuse.tar.gz
-#   release/install.sh                ← 与 v0.1.2/install.sh 相同（最新版本）
-#   release/uninstall.sh              ← 与 v0.1.2/uninstall.sh 相同（最新版本）
+#   release/latest/                   ← 与 v0.1.2/ 内容完全一致
 #   release/version-compat.json
 #   release/INSTALLATION.md
 
 # 3. 上传版本目录到 OSS：
 #    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/v0.1.2/
 
-# 4. 上传根目录文件到 OSS：
-#    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/install.sh
-#    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/uninstall.sh
+# 4. 上传 latest/ 到 OSS：
+#    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/latest/
+
+# 5. 上传根目录文件到 OSS：
 #    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/version-compat.json
 #    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/INSTALLATION.md
 ```

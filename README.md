@@ -27,18 +27,6 @@ See [INSTALLATION.md](./scripts/INSTALLATION.md) (for AI agents) for full instal
 - Manual installation
 - Troubleshooting
 
-## Quick Start
-
-```bash
-curl -fsSL https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-langfuse/install.sh | sudo bash -s -- \
-  --endpoint "<your-otlp-endpoint>" \
-  --pk "pk-lf-xxx" \
-  --sk "sk-lf-yyy" \
-  --serviceName "my-service" \
-  --config "<path-to-openclaw.json>" \
-  --install-dir "<path-to-install-directory>"
-```
-
 ## Reported Spans
 
 The exporter reports spans following [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/):
@@ -66,21 +54,27 @@ https://ck-langfuse-public.oss-cn-beijing.aliyuncs.com/openclaw-exporter-to-lang
 
 ```
 <oss-host>/openclaw-exporter-to-langfuse/
-├── install.sh                   ← same as v0.1.2/install.sh (latest version)
-├── uninstall.sh                 ← same as v0.1.2/uninstall.sh (latest version)
 ├── version-compat.json          ← compatibility matrix (all versions)
 ├── INSTALLATION.md              ← agent-readable installation guide
+├── latest/                      ← always mirrors the latest version (v0.1.2)
+│   ├── install.sh               ← PLUGIN_VERSION="v0.1.2" baked in
+│   ├── uninstall.sh
+│   ├── INSTALLATION.md
+│   └── openclaw-exporter-to-langfuse.tar.gz
 ├── v0.1.0/
 │   ├── install.sh               ← PLUGIN_VERSION="v0.1.0" baked in
 │   ├── uninstall.sh
+│   ├── INSTALLATION.md
 │   └── openclaw-exporter-to-langfuse.tar.gz
 ├── v0.1.1/
 │   ├── install.sh               ← PLUGIN_VERSION="v0.1.1" baked in
 │   ├── uninstall.sh
+│   ├── INSTALLATION.md
 │   └── openclaw-exporter-to-langfuse.tar.gz
 └── v0.1.2/
     ├── install.sh               ← PLUGIN_VERSION="v0.1.2" baked in
     ├── uninstall.sh
+    ├── INSTALLATION.md
     └── openclaw-exporter-to-langfuse.tar.gz
 ```
 
@@ -135,18 +129,19 @@ bash scripts/pack.sh
 # Outputs:
 #   release/v0.1.2/install.sh         ← PLUGIN_VERSION="v0.1.2" baked in
 #   release/v0.1.2/uninstall.sh       ← SELF_VERSION="v0.1.2" baked in
+#   release/v0.1.2/INSTALLATION.md    ← version-specific install guide
 #   release/v0.1.2/openclaw-exporter-to-langfuse.tar.gz
-#   release/install.sh                ← copy of v0.1.2/install.sh (latest)
-#   release/uninstall.sh              ← copy of v0.1.2/uninstall.sh (latest)
+#   release/latest/                   ← identical copy of v0.1.2/
 #   release/version-compat.json
 #   release/INSTALLATION.md
 
 # 3. Upload versioned artifacts to OSS:
 #    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/v0.1.2/
 
-# 4. Upload root-level artifacts to OSS:
-#    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/install.sh
-#    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/uninstall.sh
+# 4. Upload latest/ to OSS:
+#    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/latest/
+
+# 5. Upload root-level artifacts to OSS:
 #    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/version-compat.json
 #    oss://ck-langfuse-public/openclaw-exporter-to-langfuse/INSTALLATION.md
 ```

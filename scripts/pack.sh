@@ -97,9 +97,21 @@ else
   exit 1
 fi
 
-# Copy version-baked scripts to release root (root = latest = current version)
-cp "${VERSIONED_DIR}/install.sh"   "${OUTPUT_DIR}/install.sh"
-cp "${VERSIONED_DIR}/uninstall.sh" "${OUTPUT_DIR}/uninstall.sh"
+# Generate versioned INSTALLATION.md — bake {{EXPORTER_VERSION}} into the markdown
+sed "s/{{EXPORTER_VERSION}}/v${VERSION}/g" \
+  "${SCRIPT_DIR}/VERSIONED_INSTALLATION.md" > "${VERSIONED_DIR}/INSTALLATION.md"
+echo "==> Generated ${VERSIONED_DIR}/INSTALLATION.md ({{EXPORTER_VERSION}} → v${VERSION})"
+
+# Create latest/ directory — identical to the versioned directory, always points to current release
+LATEST_DIR="${OUTPUT_DIR}/latest"
+mkdir -p "${LATEST_DIR}"
+cp "${VERSIONED_DIR}/install.sh"        "${LATEST_DIR}/install.sh"
+cp "${VERSIONED_DIR}/uninstall.sh"      "${LATEST_DIR}/uninstall.sh"
+cp "${VERSIONED_DIR}/INSTALLATION.md"   "${LATEST_DIR}/INSTALLATION.md"
+cp "${VERSIONED_DIR}/${PLUGIN_NAME}.tar.gz" "${LATEST_DIR}/${PLUGIN_NAME}.tar.gz"
+echo "==> Created ${LATEST_DIR}/ (mirrors v${VERSION}/)"
+
+# Copy shared docs to release root
 if [[ -f "${SCRIPT_DIR}/version-compat.json" ]]; then
   cp "${SCRIPT_DIR}/version-compat.json" "${OUTPUT_DIR}/version-compat.json"
 fi
@@ -108,17 +120,23 @@ cp "${SCRIPT_DIR}/INSTALLATION.md" "${OUTPUT_DIR}/INSTALLATION.md"
 echo ""
 echo "✅ Release artifacts:"
 echo ""
-echo "  Root (v${VERSION} / latest):"
-echo "   ${OUTPUT_DIR}/install.sh"
-echo "   ${OUTPUT_DIR}/uninstall.sh"
+echo "  Root:"
 echo "   ${OUTPUT_DIR}/version-compat.json  (if present)"
 echo "   ${OUTPUT_DIR}/INSTALLATION.md"
+echo ""
+echo "  Latest (mirrors v${VERSION}/):"
+echo "   ${LATEST_DIR}/install.sh"
+echo "   ${LATEST_DIR}/uninstall.sh"
+echo "   ${LATEST_DIR}/INSTALLATION.md"
+echo "   ${LATEST_DIR}/${PLUGIN_NAME}.tar.gz"
 echo ""
 echo "  Versioned (v${VERSION}):"
 echo "   ${VERSIONED_DIR}/install.sh         ← PLUGIN_VERSION=\"v${VERSION}\""
 echo "   ${VERSIONED_DIR}/uninstall.sh       ← SELF_VERSION=\"v${VERSION}\""
+echo "   ${VERSIONED_DIR}/INSTALLATION.md    ← {{EXPORTER_VERSION}} → v${VERSION}"
 echo "   ${VERSIONED_DIR}/${PLUGIN_NAME}.tar.gz  (${SIZE})"
 echo ""
 echo "Upload to OSS:"
 echo "  Root:      oss://<bucket>/openclaw-exporter-to-langfuse/"
+echo "  Latest:    oss://<bucket>/openclaw-exporter-to-langfuse/latest/"
 echo "  Versioned: oss://<bucket>/openclaw-exporter-to-langfuse/v${VERSION}/"
