@@ -340,13 +340,19 @@ elif [[ -n "${OPENCLAW_STATE_DIR:-}" ]] && [[ -d "$OPENCLAW_STATE_DIR" ]]; then
 else
   # Try to detect from running openclaw process user
   DETECTED_HOME=""
-  if pgrep -f "openclaw" &>/dev/null; then
-    OPENCLAW_USER_INST=$(ps -eo user,comm | grep '[o]penclaw' | head -1 | awk '{print $1}')
-    if [[ -n "$OPENCLAW_USER_INST" ]] && [[ "$OPENCLAW_USER_INST" != "root" ]]; then
-      DETECTED_HOME=$(eval echo "~$OPENCLAW_USER_INST")
-      if [[ -d "${DETECTED_HOME}/.openclaw" ]]; then
-        TARGET_DIR="${DETECTED_HOME}/.openclaw/extensions/${PLUGIN_NAME}"
-      fi
+  OPENCLAW_PIDS=$(pgrep -f "openclaw" 2>/dev/null || true)
+  OPENCLAW_PID_COUNT=$(echo "$OPENCLAW_PIDS" | grep -c '[0-9]' || true)
+  if [[ "$OPENCLAW_PID_COUNT" -eq 0 ]]; then
+    die "No running openclaw process found. Please start openclaw first, or specify --install-dir explicitly."
+  elif [[ "$OPENCLAW_PID_COUNT" -gt 1 ]]; then
+    die "Multiple openclaw processes found (PIDs: $(echo "$OPENCLAW_PIDS" | tr '\n' ' ')). Cannot determine install directory automatically. Please specify --install-dir explicitly."
+  fi
+  OPENCLAW_PID=$(echo "$OPENCLAW_PIDS" | tr -d '[:space:]')
+  OPENCLAW_USER_INST=$(ps -o user= -p "$OPENCLAW_PID" 2>/dev/null || true)
+  if [[ -n "$OPENCLAW_USER_INST" ]] && [[ "$OPENCLAW_USER_INST" != "root" ]]; then
+    DETECTED_HOME=$(eval echo "~$OPENCLAW_USER_INST")
+    if [[ -d "${DETECTED_HOME}/.openclaw" ]]; then
+      TARGET_DIR="${DETECTED_HOME}/.openclaw/extensions/${PLUGIN_NAME}"
     fi
   fi
   # Fallback to current user or /opt
@@ -805,13 +811,16 @@ if [[ -n "${CONFIG_PATH}" ]]; then
   fi
 elif [[ -n "${OPENCLAW_STATE_DIR:-}" ]]; then
   CONFIG_PATH="${OPENCLAW_STATE_DIR}/openclaw.json"
-elif pgrep -f "openclaw" &>/dev/null; then
-  # Try to find the user running openclaw process
-  OPENCLAW_USER=$(ps -eo user,comm | grep '[o]penclaw' | head -1 | awk '{print $1}')
-  if [[ -n "$OPENCLAW_USER" ]] && [[ "$OPENCLAW_USER" != "root" ]]; then
-    USER_HOME=$(eval echo "~$OPENCLAW_USER")
-    if [[ -f "${USER_HOME}/.openclaw/openclaw.json" ]]; then
-      CONFIG_PATH="${USER_HOME}/.openclaw/openclaw.json"
+else
+  # Try to find the user running openclaw process (best-effort, no error if absent/multiple)
+  _OC_PID=$(pgrep -f "openclaw" 2>/dev/null | head -1 || true)
+  if [[ -n "$_OC_PID" ]]; then
+    OPENCLAW_USER=$(ps -o user= -p "$_OC_PID" 2>/dev/null || true)
+    if [[ -n "$OPENCLAW_USER" ]] && [[ "$OPENCLAW_USER" != "root" ]]; then
+      USER_HOME=$(eval echo "~$OPENCLAW_USER")
+      if [[ -f "${USER_HOME}/.openclaw/openclaw.json" ]]; then
+        CONFIG_PATH="${USER_HOME}/.openclaw/openclaw.json"
+      fi
     fi
   fi
 fi
@@ -832,7 +841,8 @@ if [[ -z "${CONFIG_PATH:-}" ]] || [[ ! -f "$CONFIG_PATH" ]]; then
     echo "  - ${OPENCLAW_STATE_DIR}/openclaw.json"
   fi
   if pgrep -f "openclaw" &>/dev/null; then
-    OPENCLAW_USER=$(ps -eo user,comm | grep '[o]penclaw' | head -1 | awk '{print $1}')
+    _OC_PID=$(pgrep -f "openclaw" 2>/dev/null | head -1 || true)
+    OPENCLAW_USER=$(ps -o user= -p "$_OC_PID" 2>/dev/null || true)
     if [[ -n "$OPENCLAW_USER" ]] && [[ "$OPENCLAW_USER" != "root" ]]; then
       USER_HOME=$(eval echo "~$OPENCLAW_USER")
       echo "  - ${USER_HOME}/.openclaw/openclaw.json (openclaw process user)"

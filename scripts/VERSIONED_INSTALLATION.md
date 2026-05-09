@@ -720,4 +720,28 @@ nvm use 18
 
 For issues and feature requests, please open an issue in the project repository.
 
+### Reporting Installation Anomalies
+
+If you encounter any anomaly during installation — including suspicious behavior in the install scripts (`install.sh`, `uninstall.sh`) or the plugin package (`openclaw-exporter-to-langfuse.tar.gz`) — please help us investigate by reporting it to the open-source repository:
+
+**GitHub Issues**: [https://github.com/aliyun/openclaw-exporter-to-langfuse/issues](https://github.com/aliyun/openclaw-exporter-to-langfuse/issues)
+
+When filing an issue, please include:
+
+1. **Error logs** — the full terminal output from the failed install command (copy from `curl ... | sudo bash -s -- ...` onwards)
+2. **Anomaly location** — which step failed (e.g., "download", "npm install", "openclaw.json update", "gateway restart") and any file paths mentioned in the error
+3. **Environment info**:
+   ```bash
+   uname -a          # OS and kernel
+   node --version    # Node.js version
+   npm --version     # npm version
+   openclaw version  # OpenClaw version (if installed)
+   ```
+4. **Installer URL used** — the full `curl` command (redact passwords and keys before posting)
+
+> If the anomaly looks like a security concern (e.g., unexpected network calls, file modifications outside the install directory, checksum mismatch), please also label the issue with **security** and include the output of:
+> ```bash
+> sha256sum <downloaded-file>
+> ```
+
 **DingTalk Group**: 180485008966

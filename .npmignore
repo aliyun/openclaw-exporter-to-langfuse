@@ -1,0 +1,8 @@
+# Exclude the standalone onboard CLI from both the npm/ClawHub package and the
+# OSS tarball (pack.sh reads this file and removes matching files from staging).
+# The onboard CLI uses child_process (shell execution) for interactive installation,
+# which triggers OpenClaw's security scanner and blocks plugin installation.
+dist/onboard-cli.js
+dist/onboard-cli.js.map
+dist/onboard-cli.d.ts
+dist/onboard-cli.d.ts.map

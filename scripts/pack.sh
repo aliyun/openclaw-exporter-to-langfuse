@@ -30,6 +30,15 @@ cp    index.ts         "$OUTPUT_DIR/staging/${PLUGIN_NAME}/"
 [ -f tsconfig.json ] && cp tsconfig.json "$OUTPUT_DIR/staging/${PLUGIN_NAME}/"
 cp    PLUGIN_README.md "$OUTPUT_DIR/staging/${PLUGIN_NAME}/README.md"
 
+echo "==> Applying .npmignore exclusions to staging..."
+if [[ -f "$PROJECT_DIR/.npmignore" ]]; then
+  while IFS= read -r pattern; do
+    [[ "$pattern" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${pattern// }" ]] && continue
+    rm -f "$OUTPUT_DIR/staging/${PLUGIN_NAME}/${pattern}"
+  done < "$PROJECT_DIR/.npmignore"
+fi
+
 echo "==> Stripping macOS extended attributes..."
 if command -v xattr &>/dev/null; then
   xattr -cr "$OUTPUT_DIR/staging/${PLUGIN_NAME}" 2>/dev/null || true
