@@ -28,6 +28,7 @@ cp    openclaw.plugin.json "$OUTPUT_DIR/staging/${PLUGIN_NAME}/"
 cp    VERSION          "$OUTPUT_DIR/staging/${PLUGIN_NAME}/"
 cp    index.ts         "$OUTPUT_DIR/staging/${PLUGIN_NAME}/"
 [ -f tsconfig.json ] && cp tsconfig.json "$OUTPUT_DIR/staging/${PLUGIN_NAME}/"
+cp    PLUGIN_README.md "$OUTPUT_DIR/staging/${PLUGIN_NAME}/README.md"
 
 echo "==> Stripping macOS extended attributes..."
 if command -v xattr &>/dev/null; then
