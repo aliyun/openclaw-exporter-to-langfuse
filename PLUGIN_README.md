@@ -62,6 +62,16 @@ Add the following to your `openclaw.json` to enable the plugin and configure it 
 
 **Minimal example with Langfuse Cloud:**
 
+> **How to create the `Authorization` header:**
+> 1. Go to your Langfuse project → **Settings → API Keys**
+> 2. Copy your **Public Key** (`pk-lf-xxx`) and **Secret Key** (`sk-lf-yyy`)
+> 3. Generate the Base64-encoded value:
+>    ```bash
+>    echo -n "pk-lf-xxx:sk-lf-yyy" | base64 -w 0
+>    # Example output: cGstbGYteHh4OnNrLWxmLXl5eQ==
+>    ```
+> 4. Set `Authorization` to `"Basic <output>"`, e.g. `"Basic cGstbGYteHh4OnNrLWxmLXl5eQ=="`
+
 ```json
 {
   "plugins": {
