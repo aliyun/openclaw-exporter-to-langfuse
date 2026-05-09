@@ -72,7 +72,7 @@ Add the following to your `openclaw.json` to enable the plugin and configure it 
           "allowConversationAccess": true
         },
         "config": {
-          "endpoint": "https://<LANGFUSE_HOST>/api/public/otel/v1/traces",
+          "endpoint": "http://<LANGFUSE_HOST>/api/public/otel/v1/traces",
           "headers": {
             "Authorization": "Basic <base64(pk:sk)>"
           },
