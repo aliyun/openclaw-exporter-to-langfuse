@@ -4,7 +4,7 @@
     {
       "minOpenclaw": "2026.4.24",
       "maxOpenclaw": "",
-      "exporterVersion": "v0.1.3",
+      "exporterVersion": "v0.1.4",
       "upgradeNote": "Requires setting the plugin's hooks.allowConversationAccess=true; otherwise, full hooks cannot be properly retrieved, leading to abnormal trace delivery."
     },
     {
