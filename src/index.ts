@@ -398,6 +398,9 @@ const langfuseTracePlugin: OpenClawPlugin = {
     const endpoint = pluginConfig.endpoint as string | undefined;
     const headers = pluginConfig.headers as Record<string, string> | undefined;
     const customTraceTags = normalizeCustomTraceTags(pluginConfig.tags);
+    const configuredUserId = typeof pluginConfig.userId === "string" && pluginConfig.userId.trim()
+      ? pluginConfig.userId.trim()
+      : undefined;
 
     if (!endpoint) {
       api.logger.error(
@@ -429,6 +432,11 @@ const langfuseTracePlugin: OpenClawPlugin = {
       if (customTraceTags.length > 0) {
         api.logger.info(
           `[LangfuseTrace] Custom trace tags enabled: ${JSON.stringify(customTraceTags)}`,
+        );
+      }
+      if (configuredUserId) {
+        api.logger.info(
+          `[LangfuseTrace] Configured user id: ${configuredUserId}`,
         );
       }
       if (pluginConfig.skillTaggingEnabled === true && skillTagDetectionCfg && skillTagDetectionCfg.skillsRoots.length === 0) {
@@ -1095,7 +1103,8 @@ const langfuseTracePlugin: OpenClawPlugin = {
       const now = Date.now();
       ctx.rootSpanStartTime = now;
       const sessionId = ctx.sessionId || channelId;
-      const userId = options.userId || "unknown";
+      // Priority: hook event > plugin config > "unknown"
+      const userId = options.userId || configuredUserId || "unknown";
       const rootAttrs: Record<string, string | number | boolean> = {
         "gen_ai.operation.name": "enter",
         "gen_ai.user.id": userId,
