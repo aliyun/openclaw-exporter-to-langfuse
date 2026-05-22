@@ -1,6 +1,12 @@
 {
-  "latest": "v0.1.4",
+  "latest": "v0.1.5",
   "compatMatrix": [
+    {
+      "minOpenclaw": "2026.5.4",
+      "maxOpenclaw": "",
+      "exporterVersion": "v0.1.5",
+      "upgradeNote": ""
+    },
     {
       "minOpenclaw": "2026.4.24",
       "maxOpenclaw": "",

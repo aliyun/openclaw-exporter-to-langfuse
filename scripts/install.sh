@@ -9,6 +9,7 @@
 #     --sk "sk-lf-yyy" \
 #     --serviceName "my-service" \
 #     --tags "id:openclaw,ip:127.0.0.1" \
+#     --user-id "user_12345" \
 #     --skill-tagging-enabled \
 #     --skills-roots "/opt/git/openclaw/skills/custom/skills"
 #
@@ -72,6 +73,7 @@ TARGET_DIR=""  # Will be set during exporter installation or remain empty if ski
 ENABLE_SKILL_TAGGING=false
 SKILLS_ROOTS=""
 CUSTOM_TAGS=""
+USER_ID=""
 ENABLE_DEBUG=false
 INSTALLED_VERSION=""  # read from package.json after installation; used for verification and summary
 
@@ -157,6 +159,7 @@ while [[ $# -gt 0 ]]; do
     --sk)                 need_value "$@"; SECRET_KEY="$2";     shift 2 ;;
     --serviceName)        need_value "$@"; SERVICE_NAME="$2";   shift 2 ;;
     --tags)               need_value "$@"; CUSTOM_TAGS="$2";    shift 2 ;;
+    --user-id)            need_value "$@"; USER_ID="$2";       shift 2 ;;
     --plugin-url)         need_value "$@"; PLUGIN_URL="$2";     shift 2 ;;
     --install-dir)        need_value "$@"; INSTALL_DIR="$2";    shift 2 ;;
     --config)             need_value "$@"; CONFIG_PATH="$2";    shift 2 ;;
@@ -253,6 +256,7 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
   echo "                         Enable skill tag detection (flag, default: false)"
   echo "  --skills-roots         Comma-separated roots or JSON array string"
   echo "  --tags                 Comma-separated tags or JSON array string"
+  echo "  --user-id              Static user ID for traces (overridden by hook-event userId)"
   exit 1
 fi
 
@@ -883,6 +887,7 @@ const enableSkillTagging = process.argv[14] === 'true';
 const skillsRootsArg  = process.argv[15];
 const enableDebug     = process.argv[16] === 'true';
 const tagsArg         = process.argv[17];
+const userIdArg       = process.argv[18];
 
 let config = {};
 try {
@@ -955,6 +960,9 @@ if (enablePlugin) {
   if (Array.isArray(existingPluginConfig.tags)) {
     nextPluginConfig.tags = existingPluginConfig.tags;
   }
+  if (typeof existingPluginConfig.userId === 'string') {
+    nextPluginConfig.userId = existingPluginConfig.userId;
+  }
 
   const normalizeSkillRoot = (value) => {
     if (typeof value !== 'string') return '';
@@ -1025,6 +1033,22 @@ if (enablePlugin) {
       .filter((value, index, arr) => value && arr.indexOf(value) === index);
     if (nextPluginConfig.tags.length === 0) {
       delete nextPluginConfig.tags;
+    }
+  }
+
+  if (typeof userIdArg === 'string') {
+    const trimmed = userIdArg.trim();
+    if (trimmed) {
+      nextPluginConfig.userId = trimmed;
+    }
+  }
+
+  if (typeof nextPluginConfig.userId === 'string') {
+    const trimmedUserId = nextPluginConfig.userId.trim();
+    if (trimmedUserId) {
+      nextPluginConfig.userId = trimmedUserId;
+    } else {
+      delete nextPluginConfig.userId;
     }
   }
   config.plugins.entries[pluginName] = {
@@ -1113,7 +1137,8 @@ process.stdout.write(diagChanges.join('|'));
   "$ENABLE_SKILL_TAGGING" \
   "$SKILLS_ROOTS" \
   "$ENABLE_DEBUG" \
-  "$CUSTOM_TAGS"
+  "$CUSTOM_TAGS" \
+  "$USER_ID"
 )
 
 ok "Config updated"

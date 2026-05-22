@@ -1408,7 +1408,7 @@ const langfuseTracePlugin: OpenClawPlugin = {
           hookCtx: PluginHookContext,
         ) => {
           if (config.debug) {
-            api.logger.info(`[LangfuseTrace] Hook message_received: trigger=${hookCtx.trigger}, from=${event.from}`);
+            api.logger.info(`[LangfuseTrace] Hook message_received: trigger=${hookCtx.trigger}, from=${event.from}, metadat=${event.metadata}`);
           }
           const rawChannelId = resolveChannelId(
             hookCtx,

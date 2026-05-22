@@ -36,6 +36,12 @@ const plugin = {
         description:
           "Custom Langfuse tags applied to the trace root span (e.g. [\"id:openclaw\", \"ip:127.0.0.1\"]).",
       },
+      userId: {
+        type: "string",
+        default: "",
+        description:
+          "Static user ID applied to traces when the hook event does not provide one. Priority: hook event > config > \"unknown\".",
+      },
       debug: {
         type: "boolean",
         default: false,

@@ -802,6 +802,7 @@ if (pendingAssistant) {
         },
         "serviceName": "openclaw-agent",
         "tags": ["id:openclaw", "ip:127.0.0.1"],
+        "userId": "user_12345",
         "debug": false,
         "skillTaggingEnabled": false,
         "batchSize": 10,
@@ -840,7 +841,7 @@ private resolveTraceUrl(): string {
 | 属性名 | 说明 | 设置位置 |
 |--------|------|----------|
 | `langfuse.session.id` | 会话 ID | 所有 Span |
-| `langfuse.user.id` | 用户 ID | Root Span |
+| `langfuse.user.id` | 用户 ID（`userId` 配置或 hook 事件提供；缺省为 `"unknown"`） | Root Span |
 | `langfuse.trace.input` | Trace 输入 | Root Span 创建时 |
 | `langfuse.tags` | 自定义 Trace 标签（`tags` 配置） | Root Span 创建时 |
 | `langfuse.observation.input` | 观察输入 | LLM/Agent Span |

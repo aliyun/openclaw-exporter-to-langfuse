@@ -803,6 +803,7 @@ if (pendingAssistant) {
         },
         "serviceName": "openclaw-agent",
         "tags": ["id:openclaw", "ip:127.0.0.1"],
+        "userId": "user_12345",
         "debug": false,
         "skillTaggingEnabled": false,
         "batchSize": 10,
@@ -841,7 +842,7 @@ private resolveTraceUrl(): string {
 | Attribute | Description | Set On |
 |-----------|-------------|--------|
 | `langfuse.session.id` | Session ID | All Spans |
-| `langfuse.user.id` | User ID | Root Span |
+| `langfuse.user.id` | User ID (`userId` config or hook event; falls back to `"unknown"`) | Root Span |
 | `langfuse.trace.input` | Trace input | Root Span at creation |
 | `langfuse.tags` | Custom Trace tags (`tags` config) | Root Span at creation |
 | `langfuse.observation.input` | Observation input | LLM/Agent Span |
