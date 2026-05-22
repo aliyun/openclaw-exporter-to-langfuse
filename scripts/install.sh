@@ -101,6 +101,7 @@ info()  { echo -e "${CYAN}[INFO]${NC}  $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
+die()   { echo "ERROR: $*" >&2; exit 1; }
 
 print_developer_info() {
   echo ""
