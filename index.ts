@@ -40,7 +40,7 @@ const plugin = {
         type: "string",
         default: "",
         description:
-          "Static user ID applied to traces when the hook event does not provide one. Priority: hook event > config > \"unknown\".",
+          "User ID for traces. Defaults to the OS username; when configured, overrides the OS default. Priority: config > OS account > \"unknown\".",
       },
       debug: {
         type: "boolean",

@@ -1,3 +1,4 @@
+import os from "os";
 import { LangfuseExporter } from "./langfuse-exporter.js";
 import {
   detectSkillTagsFromToolCall,
@@ -401,6 +402,14 @@ const langfuseTracePlugin: OpenClawPlugin = {
     const configuredUserId = typeof pluginConfig.userId === "string" && pluginConfig.userId.trim()
       ? pluginConfig.userId.trim()
       : undefined;
+    const osUsername = (() => {
+      try {
+        return os.userInfo().username || undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    const defaultUserId = osUsername || "unknown";
 
     if (!endpoint) {
       api.logger.error(
@@ -1103,8 +1112,7 @@ const langfuseTracePlugin: OpenClawPlugin = {
       const now = Date.now();
       ctx.rootSpanStartTime = now;
       const sessionId = ctx.sessionId || channelId;
-      // Priority: hook event > plugin config > "unknown"
-      const userId = options.userId || configuredUserId || "unknown";
+      const userId = options.userId || "unknown";
       const rootAttrs: Record<string, string | number | boolean> = {
         "gen_ai.operation.name": "enter",
         "gen_ai.user.id": userId,
@@ -1430,7 +1438,7 @@ const langfuseTracePlugin: OpenClawPlugin = {
             ctx.userInput = event.content;
 
             await ensureEntrySpan(ctx, channelId, {
-              userId: event.from || ((event.metadata as { senderId?: string } | undefined)?.senderId),
+              userId: configuredUserId || defaultUserId,
               role,
               from: event.from,
             });
@@ -1507,7 +1515,7 @@ const langfuseTracePlugin: OpenClawPlugin = {
           // before_agent_start for this run. Ensure parent spans exist so
           // segmented LLM/TOOL spans never become orphan traces.
           await ensureEntrySpan(ctx, channelId, {
-            userId: (hookCtx.trigger as string) || "system",
+            userId: configuredUserId || defaultUserId,
             role: (hookCtx.trigger as string) || "system",
             from: hookCtx.agentId || "openclaw",
           });
@@ -1918,7 +1926,7 @@ const langfuseTracePlugin: OpenClawPlugin = {
 
           // Ensure ENTRY span exists (idempotent: skips if message_received already created one)
           await ensureEntrySpan(ctx, channelId, {
-            userId: (hookCtx.trigger as string) || "system",
+            userId: configuredUserId || defaultUserId,
             role: (hookCtx.trigger as string) || "system",
             from: agentId,
           });

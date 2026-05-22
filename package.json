@@ -23,11 +23,11 @@
       "./index.ts"
     ],
     "compat": {
-      "pluginApi": ">=2026.4.24"
+      "pluginApi": ">=2026.2.29"
     },
     "build": {
-      "openclawVersion": "2026.4.26",
-      "pluginSdkVersion": "2026.4.26"
+      "openclawVersion": "2026.5.4",
+      "pluginSdkVersion": "2026.5.4"
     }
   },
   "license": "MIT",

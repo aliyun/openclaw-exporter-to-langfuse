@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 ## [0.1.5] - 2026-05-22
 
 ### Added
-- Support `userId` plugin config option to apply a static user ID to traces when the hook event does not provide one. Priority chain: hook event > config > `"unknown"`. ([#6](https://github.com/aliyun/openclaw-exporter-to-langfuse/pull/6), 592765c)
+- Support `userId` plugin config option to apply a static user ID to traces. Defaults to the OS username; when configured, overrides the OS default. Priority chain: config > OS account > `"unknown"`. ([#6](https://github.com/aliyun/openclaw-exporter-to-langfuse/pull/6), 592765c)
 - Document `userId` in `openclaw.plugin.json` configSchema, root `index.ts` configSchema, `PLUGIN_README.md`, `TUTORIAL.md`, `TUTORIAL.zh.md`, and `scripts/VERSIONED_INSTALLATION.md`.
 - Add `--user-id` CLI flag to `scripts/install.sh`, with preserve-existing, override, normalize, and clean-empty handling that mirrors the existing `tags` pattern.
 - Document Authorization header creation steps for Langfuse in `PLUGIN_README.md` (acfbbee).

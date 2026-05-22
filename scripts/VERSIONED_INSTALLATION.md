@@ -63,7 +63,7 @@ AI Agent trace visualization in Langfuse. No otelcol-contrib needed.
 | `--authorization` | **Yes**\* | — | Alternative to pk/sk: `"Basic <base64>"` |
 | `--serviceName` | **Yes** | — | Service name for traces (e.g., `my-agent-prod`) |
 | `--tags` | No | unset | Custom trace-level Langfuse tags (CSV like `"id:openclaw,ip:127.0.0.1"` or JSON array string) |
-| `--user-id` | No | unset | Static user ID for traces (e.g., `"user_12345"`). Used when the hook event does not provide one. Priority: hook event > config > `"unknown"` |
+| `--user-id` | No | unset | Static user ID for traces (e.g., `"user_12345"`). Overrides the OS username default. Priority: config > OS account > `"unknown"` |
 | `--debug` | No | `false` | Enable exporter debug logs (boolean flag, add this option to enable) |
 | `--skill-tagging-enabled` | No | `false` | Enable skill tagging (boolean flag, add this option to enable) |
 | `--skills-roots` | No | explicit value (recommended) | Skill roots for tagging. OpenClaw will auto-discover skill paths at runtime when this is omitted, but we recommend passing CSV or JSON array string explicitly for stable behavior |
@@ -108,7 +108,7 @@ Full observability: Langfuse + ClickHouse. All parameters from A + B, **without*
 | `--authorization` | **Yes**\* | — | Alternative to pk/sk |
 | `--serviceName` | **Yes** | — | Service name for traces |
 | `--tags` | No | unset | Custom trace-level Langfuse tags (CSV or JSON array string) |
-| `--user-id` | No | unset | Static user ID for traces. Used when the hook event does not provide one |
+| `--user-id` | No | unset | Static user ID for traces. Overrides the OS username default |
 | `--debug` | No | `false` | Enable exporter debug logs (boolean flag, add this option to enable) |
 | `--skill-tagging-enabled` | No | `false` | Enable skill tagging (boolean flag, add this option to enable) |
 | `--skills-roots` | No | explicit value (recommended) | Skill roots for tagging. OpenClaw will auto-discover skill paths at runtime when this is omitted, but we recommend passing CSV or JSON array string explicitly for stable behavior |
@@ -139,7 +139,7 @@ Full observability: Langfuse + ClickHouse. All parameters from A + B, **without*
 - **serviceName**: A name to identify this OpenClaw instance (e.g., `my-agent-prod`)
 - **debug**: Enable verbose plugin logs for troubleshooting (boolean flag, default `false`)
 - **tags**: Custom tags written to `langfuse.tags` on trace root span only (for example: `--tags "id:openclaw,ip:127.0.0.1"` or JSON array string)
-- **user-id**: Static user ID applied to traces when the hook event does not provide one. Priority: hook event > config > `"unknown"` (for example: `--user-id "user_12345"`)
+- **user-id**: Static user ID applied to traces. Overrides the OS username default. Priority: config > OS account > `"unknown"` (for example: `--user-id "user_12345"`)
 - **skill-tagging-enabled**: Whether to emit `skill:*` tags to Langfuse (boolean flag, default `false`)
 - **skills-roots**: OpenClaw can auto-discover skill roots at runtime, but we recommend explicitly passing `--skills-roots` (CSV like `"/opt/openclaw/skills,/a/skills"` or JSON array string) to avoid environment differences. Recommended common paths: `/opt/openclaw/skills/`, `/opt/git/openclaw/skills`, `/custom/skills`
 
@@ -536,7 +536,7 @@ service:
 
 `skillTaggingEnabled` defaults to `false`. Set it to `true` if you want `skill:*` tags on tool observations in Langfuse.
 `tags` is optional. When configured, it is written to `langfuse.tags` on the trace root span only.
-`userId` is optional. When configured, it is written to `langfuse.user.id` on the trace root span only when the hook event does not provide a user ID.
+`userId` is optional. When configured, it overrides the OS username default and is written to `langfuse.user.id` on the trace root span. When omitted, the OS username is used.
 
 ---
 

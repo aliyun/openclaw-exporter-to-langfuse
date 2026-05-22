@@ -256,7 +256,7 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
   echo "                         Enable skill tag detection (flag, default: false)"
   echo "  --skills-roots         Comma-separated roots or JSON array string"
   echo "  --tags                 Comma-separated tags or JSON array string"
-  echo "  --user-id              Static user ID for traces (overridden by hook-event userId)"
+  echo "  --user-id              Static user ID for traces (overrides OS username default)"
   exit 1
 fi
 

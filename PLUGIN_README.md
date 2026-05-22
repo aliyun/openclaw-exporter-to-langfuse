@@ -53,7 +53,7 @@ Add the following to your `openclaw.json` to enable the plugin and configure it 
 | `headers.Authorization` | string | `""` | Langfuse Basic auth header (base64-encoded `pk:sk`) |
 | `serviceName` | string | `"openclaw-agent"` | Service name shown in Langfuse traces |
 | `tags` | string[] | `[]` | Custom Langfuse tags on the root trace span |
-| `userId` | string | `""` | Static user ID used when the hook event does not provide one. Priority: hook event > config > `"unknown"` |
+| `userId` | string | `""` | User ID for traces. Defaults to OS username; overrides OS default when configured. Priority: config > OS account > `"unknown"` |
 | `batchSize` | number | `10` | Spans to buffer before flushing |
 | `flushIntervalMs` | number | `5000` | Max ms to wait before flushing buffered spans |
 | `debug` | boolean | `false` | Enable verbose debug logging |
